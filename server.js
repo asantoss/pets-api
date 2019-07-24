@@ -37,13 +37,13 @@ var owners = [
 
 
 // GET /api/owners
-app.get('/api/owners', (res, req, next) => {
+app.get('/api/owners', (req, res, next) => {
     res.json(owners)
 })
 
 // GET /api/owners/:id
-app.get('/api/owners/:id', (res, req, next) => {
-    let owner = owners.find(owner => owner.id === parseInt(req.params.id))
+app.get('/api/owners/:id', (req, res, next) => {
+    let owner = findOwner(owners, req.params.id)
     if (owner) {
         res.json(owner)
     } else {
@@ -52,24 +52,26 @@ app.get('/api/owners/:id', (res, req, next) => {
 })
 
 // POST /api/owners
-app.post('/api/owners', (res, req, next) => {
-    let nextId = Math.max(owners.map(owner => owner.id)) + 1
+app.post('/api/owners', (req, res, next) => {
+    let nextId = owners.reduce((prev, curr) => {
+        return prev > curr.id ? prev : curr.id
+    }, 0) + 1
     if (req.body.name) {
         let owner = {
             id: nextId,
             name: req.body.name,
-            pets: req.body.pets == nul ? "None" : req.body.pets
+            pets: req.body.pets == null ? [] : req.body.pets
         }
         owners.push(owner)
         res.json(owner)
     } else {
-        res.statusCode(400).json({ error: 'Sorry you need to add a name &' })
+        res.status(400).json({ error: 'Sorry you need to add a name & pets' })
     }
 })
 
 // PUT /api/owners/:id
-app.put('/api/owners/:id', (res, req, next){
-    let owner = owners.find(owner => owner.id === parseInt(req.params.id))
+app.put('/api/owners/:id', (req, res, next) => {
+    let owner = findOwner(owners, req.params.id)
     if (owner) {
         owner = req.body.params;
         res.json({
@@ -77,23 +79,104 @@ app.put('/api/owners/:id', (res, req, next){
             status: 'Updated'
         })
     } else {
-        res.statusCode(400).json({ error: "Owner not found" })
+        res.status(400).json({ error: "Owner not found" })
     }
 })
 
 // DELETE /api/owners/:id
+app.delete('/api/owners/:id', (req, res, next) => {
+    let owner = findOwner(owners, req.params.id)
+    if (owner) {
+        owners = owners.filter(owner => owner.id != parseInt(req.params.id))
+        res.json({ owners })
+    } else {
+        res.status(404).json({ error: 'Owner not found' })
+    }
+})
 
 // GET /api/owners/:id/pets
+app.get('/api/owners/:id/pets', (req, res, next) => {
+    let owner = findOwner(owners, req.params.id);
+    if (owner) {
+        res.json(owner.pets)
+    } else {
+        res.status(404).json({ error: "Owner not found" })
+    }
+})
 
 // GET /api/owners/:id/pets/:petId
+app.get('/api/owners/:id/pets/:petId', (req, res, next) => {
+    let owner = findOwner(owners, req.params.id)
+    if (owner) {
+        let petId = owner.pets.find(pet => pet.id == parseInt(req.params.petId))
+        res.json(petId)
+    } else {
+        res.status(404).json({ error: "Owner not found" })
+    }
+})
 
 // POST /api/owners/:id/pets
+app.post('/api/owners/:id/pets', (req, res, next) => {
+    let owner = findOwner(owners, req.params.id)
+    if (owner) {
+        if (owner.pets) {
+            let nextId = owner.pets.reduce((prev, curr) => {
+                return prev > curr.id ? prev : curr.id
+            }, 0) + 1
+            owner.pets.push({
+                id: nextId,
+                name: req.body.name,
+                type: req.body.type
+            })
+        } else {
+            owner.pets = []
+            let nextId = owner.pets.reduce((prev, curr) => {
+                return prev > curr.id ? prev : curr.id
+            }, 0) + 1
+            owner.pets.push({
+                id: nextId,
+                name: req.body.name,
+                type: req.body.type
+            })
+
+        }
+        res.json(owner.pets)
+    } else {
+        res.status(404).json({ error: "Owner not found" })
+    }
+})
 
 // PUT /api/owners/:id/pets/:petId
+app.put('/api/owners/:id/pets/:petId', (req, res, next) => {
+    let owner = findOwner(owners, req.params.id)
+    if (owner) {
+        let pet = findOwner(owner.pets, req.params.petId)
+        res.json(pet)
+    } else {
+        res.status(404).json({ error: "Owner not found" })
+    }
+})
 
 // DELETE /api/owners/:id/pets/:petId
+app.delete('/api/owners/:id/pets/:petId', (req, res, next) => {
+    let owner = findOwner(owners, req.params.id);
+    if (owner.pets.length) {
+        owner.pets = owner.pets.filter(pet => pet.id != parseInt(req.params.petId))
+        res.json(owner.pets)
+    } else {
+        res.status(403).json({ error: "No pet to delete" })
+    }
+})
 
 
 app.listen(3000, function () {
     console.log('Pets API is now listening on port 3000...');
 })
+
+
+
+function findOwner(owners, id) {
+    return owners.find(owner => {
+        return owner.id === parseInt(id)
+    })
+}
