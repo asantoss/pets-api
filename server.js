@@ -43,7 +43,7 @@ app.get('/api/owners', (req, res, next) => {
 
 // GET /api/owners/:id
 app.get('/api/owners/:id', (req, res, next) => {
-    let owner = findOwner(owners, req.params.id)
+    const owner = findOwner(owners, req.params.id)
     if (owner) {
         res.json(owner)
     } else {
@@ -53,27 +53,27 @@ app.get('/api/owners/:id', (req, res, next) => {
 
 // POST /api/owners
 app.post('/api/owners', (req, res, next) => {
-    let nextId = owners.reduce((prev, curr) => {
+    const nextId = owners.reduce((prev, curr) => {
         return prev > curr.id ? prev : curr.id
     }, 0) + 1
     if (req.body.name) {
         let owner = {
             id: nextId,
             name: req.body.name,
-            pets: req.body.pets == null ? [] : req.body.pets
+            pets: []
         }
         owners.push(owner)
         res.json(owner)
     } else {
-        res.status(400).json({ error: 'Sorry you need to add a name & pets' })
+        res.status(400).json({ error: 'Sorry you need to add a name.' })
     }
 })
 
 // PUT /api/owners/:id
 app.put('/api/owners/:id', (req, res, next) => {
-    let owner = findOwner(owners, req.params.id)
+    const owner = findOwner(owners, req.params.id)
     if (owner) {
-        owner = req.body.params;
+        owner.name = req.body.name
         res.json({
             owner: owner,
             status: 'Updated'
@@ -85,7 +85,7 @@ app.put('/api/owners/:id', (req, res, next) => {
 
 // DELETE /api/owners/:id
 app.delete('/api/owners/:id', (req, res, next) => {
-    let owner = findOwner(owners, req.params.id)
+    const owner = findOwner(owners, req.params.id)
     if (owner) {
         owners = owners.filter(owner => owner.id != parseInt(req.params.id))
         res.json({ owners })
@@ -96,7 +96,7 @@ app.delete('/api/owners/:id', (req, res, next) => {
 
 // GET /api/owners/:id/pets
 app.get('/api/owners/:id/pets', (req, res, next) => {
-    let owner = findOwner(owners, req.params.id);
+    const owner = findOwner(owners, req.params.id);
     if (owner) {
         res.json(owner.pets)
     } else {
@@ -106,7 +106,7 @@ app.get('/api/owners/:id/pets', (req, res, next) => {
 
 // GET /api/owners/:id/pets/:petId
 app.get('/api/owners/:id/pets/:petId', (req, res, next) => {
-    let owner = findOwner(owners, req.params.id)
+    const owner = findOwner(owners, req.params.id)
     if (owner) {
         let petId = owner.pets.find(pet => pet.id == parseInt(req.params.petId))
         res.json(petId)
@@ -117,7 +117,10 @@ app.get('/api/owners/:id/pets/:petId', (req, res, next) => {
 
 // POST /api/owners/:id/pets
 app.post('/api/owners/:id/pets', (req, res, next) => {
-    let owner = findOwner(owners, req.params.id)
+    if (!req.body || !req.body.name || !req.body.type) {
+        res.status(400).json({ error: "Sorry you are missing some parameters" })
+    }
+    const owner = findOwner(owners, req.params.id)
     if (owner) {
         if (owner.pets) {
             let nextId = owner.pets.reduce((prev, curr) => {
@@ -148,10 +151,16 @@ app.post('/api/owners/:id/pets', (req, res, next) => {
 
 // PUT /api/owners/:id/pets/:petId
 app.put('/api/owners/:id/pets/:petId', (req, res, next) => {
-    let owner = findOwner(owners, req.params.id)
+    const owner = findOwner(owners, req.params.id)
+    if (!req.body.name || !req.body) {
+        res.status(400).json({ error: 'Error you are missing arguments' })
+    }
     if (owner) {
         let pet = findOwner(owner.pets, req.params.petId)
-        res.json(pet)
+        if (pet) {
+            pet.name = req.body.name
+        }
+        res.json(owner)
     } else {
         res.status(404).json({ error: "Owner not found" })
     }
@@ -159,10 +168,10 @@ app.put('/api/owners/:id/pets/:petId', (req, res, next) => {
 
 // DELETE /api/owners/:id/pets/:petId
 app.delete('/api/owners/:id/pets/:petId', (req, res, next) => {
-    let owner = findOwner(owners, req.params.id);
+    const owner = findOwner(owners, req.params.id);
     if (owner.pets.length) {
         owner.pets = owner.pets.filter(pet => pet.id != parseInt(req.params.petId))
-        res.json(owner.pets)
+        res.json(owner)
     } else {
         res.status(403).json({ error: "No pet to delete" })
     }
